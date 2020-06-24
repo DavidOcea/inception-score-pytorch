@@ -9,7 +9,9 @@ from torchvision.models.inception import inception_v3
 import numpy as np
 from scipy.stats import entropy
 
-def inception_score(imgs, cuda=True, batch_size=32, resize=False, splits=1):
+from folder import *
+
+def inception_score(imgs, cuda=True, batch_size=1, resize=False, splits=1):
     """Computes the inception score of the generated images imgs
 
     imgs -- Torch dataset of (3xHxW) numpy images normalized in the range [-1, 1]
@@ -20,7 +22,7 @@ def inception_score(imgs, cuda=True, batch_size=32, resize=False, splits=1):
     N = len(imgs)
 
     assert batch_size > 0
-    assert N > batch_size
+    # assert N > batch_size
 
     # Set up dtype
     if cuda:
@@ -65,7 +67,7 @@ def inception_score(imgs, cuda=True, batch_size=32, resize=False, splits=1):
             scores.append(entropy(pyx, py))
         split_scores.append(np.exp(np.mean(scores)))
 
-    return np.mean(split_scores), np.std(split_scores)
+    return np.mean(split_scores), np.std(split_scores), split_scores
 
 if __name__ == '__main__':
     class IgnoreLabelDataset(torch.utils.data.Dataset):
@@ -81,15 +83,26 @@ if __name__ == '__main__':
     import torchvision.datasets as dset
     import torchvision.transforms as transforms
 
-    cifar = dset.CIFAR10(root='data/', download=True,
+    # cifar = dset.CIFAR10(root='/workspace/mnt/cache/NMA_data/fid_dataset/', download=True,
+    #                          transform=transforms.Compose([
+    #                              transforms.Scale(32),
+    #                              transforms.ToTensor(),
+    #                              transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    #                          ])
+    # )
+
+    cifar = ImageFolder(root='/workspace/mnt/cache/NMA_data/fid_dataset/news_is/group6/',
                              transform=transforms.Compose([
-                                 transforms.Scale(32),
+                                 transforms.Resize((112,112)),
                                  transforms.ToTensor(),
                                  transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                              ])
     )
 
+    # import pdb
+    # pdb.set_trace()
+
     IgnoreLabelDataset(cifar)
 
     print ("Calculating Inception Score...")
-    print (inception_score(IgnoreLabelDataset(cifar), cuda=True, batch_size=32, resize=True, splits=10))
+    print (inception_score(IgnoreLabelDataset(cifar), cuda=True, batch_size=1, resize=True, splits=10))  #splits：指数据集假定多少类
